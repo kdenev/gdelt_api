@@ -11,9 +11,20 @@ import time
 # List type
 from typing import List
 
-HOURS = 1*24
-STARTDATE = datetime.strptime(str(datetime.now())[:13], '%Y-%m-%d %H') - timedelta(hours=HOURS)
-KEYWORDS = ['jerome', 'powell', 'fed']
+DAYS = 200
+STARTDATE = datetime.strptime(str(datetime.now())[:10], '%Y-%m-%d') - timedelta(DAYS)
+KEYWORDS = [
+    "Stock market",
+    "Financial markets",
+    "Market trends",
+    "Economic indicators",
+    "Corporate earnings",
+    "Investment opportunities",
+    "Interest rates",
+    "Monetary policy",
+    "Inflation",
+    "Central bank"
+]
 BASE_URL = "https://api.gdeltproject.org/api/v2/doc/doc?"
 
 def to_or(keywords: List[str]) -> str:
@@ -30,7 +41,7 @@ def to_or(keywords: List[str]) -> str:
         return keywords[0]
     
 
-def get_articles(hours:int, start_date:datetime, keywords: List[str], url:str, to_csv:bool = False) -> pl.DataFrame:
+def get_articles(days:int, start_date:datetime, keywords: List[str], url:str, to_csv:bool = False) -> pl.DataFrame:
     """
     Function returns a polars DATAFRAME with ENGLISH news articles over a certain period,
     using the GDELT API.
@@ -50,11 +61,11 @@ def get_articles(hours:int, start_date:datetime, keywords: List[str], url:str, t
     # Placehodler dataframe
     scrape_df = pl.DataFrame()
 
-    for i in range(hours):
+    for i in range(days):
 
         # Assign iteration period    
-        news_start = (start_date + timedelta(hours=i)).strftime("%Y%m%d%H")
-        news_end = (start_date + timedelta(hours=i+1)).strftime("%Y%m%d%H")
+        news_start = (start_date + timedelta(i)).strftime("%Y%m%d")
+        news_end = (start_date + timedelta(i+1)).strftime("%Y%m%d")
         
         #print(f"Start:{news_start}, End:{news_end}")
 
@@ -62,9 +73,12 @@ def get_articles(hours:int, start_date:datetime, keywords: List[str], url:str, t
         q = f"query=({to_or(keywords)})" \
         "&maxrecords=250" \
         "&theme=ECON_STOCKMARKET " \
-        f"&STARTDATETIME={news_start}0000" \
-        f"&ENDDATETIME={news_end}0000" \
-        "&format=JSON" # Return the page result as json  
+        f"&STARTDATETIME={news_start}000000" \
+        f"&ENDDATETIME={news_end}000000" \
+        "&format=JSON" 
+
+        # Print url
+        # print(url+q)
 
         # Send the query
         driver.get(url+q)
@@ -89,7 +103,7 @@ def get_articles(hours:int, start_date:datetime, keywords: List[str], url:str, t
 
     # Ouput the csv file
     if to_csv:
-        output_df.write_csv('gdelt_api/fed_news.csv')
+        output_df.write_csv(f'gdelt_api/output{datetime.today().strftime("%Y%m%d")}.csv')
 
     # Close selenium
     driver.close()
@@ -99,7 +113,7 @@ def get_articles(hours:int, start_date:datetime, keywords: List[str], url:str, t
 # Start timer for the function
 start = time.time()
 
-df = get_articles(HOURS, STARTDATE, KEYWORDS, BASE_URL, True)
+df = get_articles(DAYS , STARTDATE, KEYWORDS, BASE_URL, to_csv=True)
 
 print(f"Execution time in secs: {round(time.time() - start)}s")
 print(df)

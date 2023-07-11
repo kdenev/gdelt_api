@@ -18,16 +18,16 @@
 <p>Define main parameter:</p>
 
 ```python
-DAYS = 20
-STARTDATE = datetime.now().date() - timedelta(DAYS)
-KEYWORD = "tech"
+HOURS = 1*24
+STARTDATE = datetime.strptime(str(datetime.now())[:13], '%Y-%m-%d %H') - timedelta(hours=HOURS)
+KEYWORDS = ['jerome', 'powell', 'fed']
 BASE_URL = "https://api.gdeltproject.org/api/v2/doc/doc?"
 ```
 
 <p>Compile function:</p>
 
 ```python
-def get_articles(days:int, start_date:datetime, keyword:str, url:str, to_csv:bool = False) -> pl.DataFrame:
+def get_articles(hours:int, start_date:datetime, keywords: List[str], url:str, to_csv:bool = False) -> pl.DataFrame:
     """
     Function returns a polars DATAFRAME with ENGLISH news articles over a certain period,
     using the GDELT API.
@@ -47,24 +47,26 @@ def get_articles(days:int, start_date:datetime, keyword:str, url:str, to_csv:boo
     # Placehodler dataframe
     scrape_df = pl.DataFrame()
 
-    for i in range(days):
+    for i in range(hours):
 
         # Assign iteration period    
-        news_start = (start_date + timedelta(i)).strftime("%Y%m%d")
-        news_end = (start_date + timedelta(i+1)).strftime("%Y%m%d")
+        news_start = (start_date + timedelta(hours=i)).strftime("%Y%m%d%H")
+        news_end = (start_date + timedelta(hours=i+1)).strftime("%Y%m%d%H")
         
+        #print(f"Start:{news_start}, End:{news_end}")
+
         # Define executable query
-        q = f"query={keyword}" \
+        q = f"query=({to_or(keywords)})" \
         "&maxrecords=250" \
         "&theme=ECON_STOCKMARKET " \
-        f"&STARTDATETIME={news_start}000000" \
-        f"&ENDDATETIME={news_end}000000" \
+        f"&STARTDATETIME={news_start}0000" \
+        f"&ENDDATETIME={news_end}0000" \
         "&format=JSON" # Return the page result as json  
 
         # Send the query
         driver.get(url+q)
         # Add option deley if too quick
-        time.sleep(.2)
+        time.sleep(.1)
 
         # Scrape the page/json contents
         json_dump = driver.find_element(By.TAG_NAME, 'body').get_attribute('innerText')
@@ -90,12 +92,13 @@ def get_articles(days:int, start_date:datetime, keyword:str, url:str, to_csv:boo
     driver.close()
 
     return output_df
+
 ```
 
 <p>Call the function:</p>
 
 ```python
-df = get_articles(DAYS, STARTDATE, KEYWORD, BASE_URL)
+df = get_articles(HOURS, STARTDATE, KEYWORDS, BASE_URL, True)
 ```
 
 <p>Used Libraries:</p>
